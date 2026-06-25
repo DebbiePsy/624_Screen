@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>📊 課堂大數據展示面板 PRO (圓餅圖綜合版)</title>
+    <style>
+        /* 🧊 完美同步學生端的暗色未來科技感背景 */
+        html, body { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background:
+                radial-gradient(circle at 20% 20%, #1b6fff22, transparent 40%),
+                radial-gradient(circle at 80% 30%, #8a2be222, transparent 40%),
+                radial-gradient(circle at 50% 80%, #00d4ff22, transparent 40%),
+                #0b1220;
+            display: flex; justify-content: center; align-items: center; 
+            overflow: hidden; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: white;
+        }
+        
+        /* 📐 核心需求 5：強迫鎖定 16:9 PPT 比例，並採用磨砂玻璃卡片 */
+        .container { 
+            width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 30px 40px; box-sizing: border-box; text-align: center; 
+            border-radius: 32px; 
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); 
+            position: relative; 
+        }
+        
+        /* 🎯 炫彩漸層大標題 */
+        h1 { 
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 40px; margin: 0 0 8px 0; font-weight: 800; line-height: 1.2; 
+            text-shadow: 0 2px 20px rgba(0,242,254,0.15);
+        }
+        
+        /* 收集人數小區塊 */
+        .sub-title { 
+            color: #a5d8ff; font-size: 22px; margin-bottom: 15px; font-weight: bold; 
+            background: rgba(255, 255, 255, 0.08); padding: 4px 20px; border-radius: 20px; 
+            display: inline-block; border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* 鎖定/盲選遮罩 */
+        #blind-placeholder { 
+            font-size: 32px; font-weight: bold; color: #748ffc; padding: 60px; 
+            background: rgba(255, 255, 255, 0.03); border: 3px dashed rgba(255, 255, 255, 0.2); 
+            border-radius: 24px; animation: pulse 2s infinite alternate; width: 80%; 
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        @keyframes pulse { from { transform: scale(0.98); opacity: 0.8; } to { transform: scale(1.01); opacity: 1; } }
+        
+        /* 圖表主顯示區 */
+        #chart-main-zone { display: none; width: 100%; overflow-y: auto; max-height: 72%; padding-right: 5px; }
+        
+        /* 🚀 題型一（多選題）：左右分欄雙列佈局容器 */
+        .chart-split-box { display: flex; width: 100%; gap: 40px; justify-content: center; align-items: flex-start; }
+        .side-column { flex: 1; display: flex; flex-direction: column; align-items: center; transition: all 0.3s ease; width: 100%; }
+        .side-title { font-size: 28px; font-weight: bold; margin-bottom: 15px; padding-bottom: 6px; border-bottom: 2px solid rgba(255,255,255,0.15); width: 100%; text-align: center; color: #00f2fe; text-shadow: 0 0 10px rgba(0,242,254,0.2); }
+        #teacher-side { display: none; border-left: 2px dashed rgba(255, 255, 255, 0.15); padding-left: 40px; }
+        .chart-row { margin: 10px 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .bar-line { display: flex; align-items: center; justify-content: center; width: 100%; gap: 15px; }
+        .bar-container { flex: 1; background: rgba(255, 255, 255, 0.08); height: 32px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .bar-live { background: linear-gradient(90deg, #00f2fe, #4facfe); height: 100%; width: 0%; transition: width 0.8s cubic-bezier(0.1, 1, 0.1, 1); box-shadow: 0 0 15px rgba(0,242,254,0.5); }
+        .bar-teacher { background: linear-gradient(90deg, #ff922b, #f57c00); height: 100%; width: 0%; transition: width 0.8s cubic-bezier(0.1, 1, 0.1, 1); box-shadow: 0 0 15px rgba(245,124,0,0.4); }
+        
+        /* 🚀 題型二（單選題）：圓餅圖專屬佈局樣式 */
+        .pie-split-box { display: flex; width: 85%; gap: 60px; justify-content: center; align-items: center; margin: 20px auto 0 auto; }
+        .pie-left { flex: 1; display: flex; justify-content: center; align-items: center; }
+        .pie-right { flex: 1; display: flex; flex-direction: column; gap: 24px; align-items: flex-start; }
+        
+        /* ⚡ 霓虹科技感圓餅圖本體 */
+        .pie-chart-circle { 
+            width: 260px; height: 260px; border-radius: 50%; 
+            background: rgba(255,255,255,0.05); 
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.15); 
+            border: 2px solid rgba(255,255,255,0.15);
+            transition: background 0.4s ease;
+        }
+        
+        /* 📐 核心需求 4：選項、票數、百分比字體全面鎖定 28 號大字 */
+        .label { font-size: 28px; font-weight: bold; color: #e1f5fe; margin-bottom: 6px; text-align: center; width: 100%; text-shadow: 0 2px 4px rgba(0,0,0,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pie-label-item { display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: bold; line-height: 1.4; }
+        .pie-color-dot { width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0; }
+        .count-tag { width: 160px; font-size: 28px; font-weight: bold; text-align: left; flex-shrink: 0; }
+        .tag-live { color: #00f2fe; text-shadow: 0 0 10px rgba(0,242,254,0.3); }
+        .tag-teacher { color: #ff922b; text-shadow: 0 0 10px rgba(255,146,43,0.3); }
+        
+        /* 圖例區 */
+        .legend { display: flex; justify-content: center; gap: 30px; margin-bottom: 12px; font-weight: bold; font-size: 20px; display: none; }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .box-live { width: 20px; height: 20px; background: linear-gradient(135deg, #00f2fe, #4facfe); border-radius: 6px; box-shadow: 0 0 8px rgba(0,242,254,0.5); }
+        .box-teacher { width: 20px; height: 20px; background: linear-gradient(135deg, #ff922b, #f57c00); border-radius: 6px; box-shadow: 0 0 8px rgba(245,124,0,0.5); }
+        
+        /* ☁️ 科技感詞雲容器 */
+        .wordcloud-wrapper { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 24px 35px; padding: 30px; background: rgba(255, 255, 255, 0.03); border-radius: 24px; min-height: 320px; width: 90%; margin: 0 auto; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .cloud-word { display: inline-block; font-weight: 900; transition: transform 0.3s; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; text-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        @keyframes popIn { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        /* 美化滾動條 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1 id="question-title">📋 任務正在投放中...</h1>
+        <div class="sub-title" id="counter">📊 收集人數：0 人</div>
+        
+        <div class="legend" id="chart-legend">
+            <div class="legend-item"><div class="box-live"></div> <span>即時數據</span></div>
+            <div class="legend-item" id="legend-t" style="display:none;"><div class="box-teacher"></div> <span>歷年大數據參考</span></div>
+        </div>
+        
+        <div id="blind-placeholder">🔒 同學正在作答中...  🤫</div>
+        
+        <div id="chart-main-zone">
+            <div id="chart-area"></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5O7AWuOhufFBTZaveUxUkkpDhu-Rghj4",
+            authDomain: "workshop-926dc.firebaseapp.com",
+            databaseURL: "https://workshop-926dc-default-rtdb.asia-southeast1.firebasedatabase.app/", 
+            projectId: "workshop-926dc"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentTask = null; let currentOptions = []; let globalResponses = {};
+        
+        const teacherData = {
+            "成績退步": 43, "學習動力低": 36.7, "功課/考測繁重": 34.8, "難以跟上課程進度": 31.1, "休息時間不足": 28.5, "好友不同班或轉校": 17.9, "無法管理自己的壓力": 14.4, "家人對成績的期望": 14.4, "需要與不熟悉的同學分組合作": 10.5, "在班上被孤立或不受歡迎": 9.9, "要參與很多課外活動": 4.6, "與老師難以溝通": 4.4, "被同學在社交媒體上議論": 2.6,"其他": 2.2
+    
+        };
+
+        // 🎨 圓餅圖專用霓虹高對比色庫
+        const pieColors = ['#00f2fe', '#ff922b', '#b197fc', '#51cf66', '#f783ac', '#ffcc00'];
+
+        db.ref('current_task').on('value', (snapshot) => {
+            currentTask = snapshot.val();
+            if (currentTask) {
+                document.getElementById("question-title").innerHTML = "🤔 " + currentTask.question;
+                currentOptions = currentTask.options || [];
+                renderChartFramework();
+                startListeningData();
+            }
+        });
+
+        // 🚀 核心優化：根據題型動態生成對應的 UI 框架
+        function renderChartFramework() {
+            const chartArea = document.getElementById("chart-area");
+            chartArea.innerHTML = "";
+            
+            if(currentTask && currentTask.type === "text") {
+                // 題型：問答題 -> 詞雲
+                chartArea.innerHTML = `<div class="wordcloud-wrapper" id="cloud-box"></div>`;
+            } 
+            else if(currentTask && currentTask.type === "single") {
+                // 題型：單選題（Q2） -> 🚀 全新圓餅圖架構
+                chartArea.innerHTML = `
+                    <div class="pie-split-box">
+                        <div class="pie-left">
+                            <div class="pie-chart-circle" id="pie-circle" style="display:none;"></div>
+                            <div id="pie-empty-msg" style="font-size:28px; font-weight:bold; color:#a5d8ff;">📊 正在等待第一筆數據...</div>
+                        </div>
+                        <div class="pie-right" id="pie-labels"></div>
+                    </div>`;
+
+                const pieLabels = document.getElementById("pie-labels");
+                currentOptions.forEach((opt, idx) => {
+                    const color = pieColors[idx % pieColors.length];
+                    const item = document.createElement("div");
+                    item.className = "pie-label-item";
+                    item.innerHTML = `
+                        <div class="pie-color-dot" style="background:${color}; box-shadow:0 0 12px ${color}aa;"></div>
+                        <span style="color:#e1f5fe; margin-right:10px;">${opt}：</span>
+                        <span class="count-tag tag-live" id="pie-count-live-${opt}" style="width:auto;">0 票 (0%)</span>
+                        <span class="count-tag tag-teacher" id="pie-count-t-${opt}" style="display:none; margin-left:20px; font-size:24px;">(歷年: ${teacherData[opt] || 0}%)</span>
+                    `;
+                    pieLabels.appendChild(item);
+                });
+            } 
+            else {
+                // 題型：多選題（Q1） -> 保持左右分欄長條圖
+                chartArea.innerHTML = `
+                    <div class="chart-split-box" id="split-box">
+                        <div class="side-column" id="student-side">
+                            <div class="side-title">📊 即時數據</div>
+                            <div id="student-rows" style="width: 100%;"></div>
+                        </div>
+                        <div class="side-column" id="teacher-side">
+                            <div class="side-title" style="color: #ff922b; text-shadow: 0 0 10px rgba(255,146,43,0.2);">🧡 2025年中學生開學適應調查結果摘要</div>
+                            <div id="teacher-rows" style="width: 100%;"></div>
+                        </div>
+                    </div>`;
+
+                const studentRows = document.getElementById("student-rows");
+                const teacherRows = document.getElementById("teacher-rows");
+
+                currentOptions.forEach(opt => {
+                    const sRow = document.createElement("div"); sRow.className = "chart-row";
+                    sRow.innerHTML = `<div class="label" title="${opt}">${opt}</div><div class="bar-line"><div class="bar-container"><div class="bar-live" id="bar-live-${opt}"></div></div><div class="count-tag tag-live" id="count-live-${opt}">0 票 (0%)</div></div>`;
+                    studentRows.appendChild(sRow);
+
+                    const tRow = document.createElement("div"); tRow.className = "chart-row";
+                    tRow.innerHTML = `<div class="label" title="${opt}">${opt}</div><div class="bar-line"><div class="bar-container"><div class="bar-teacher" id="bar-t-${opt}"></div></div><div class="count-tag tag-teacher" id="count-t-${opt}">${teacherData[opt] || 0}%</div></div>`;
+                    teacherRows.appendChild(tRow);
+                });
+            }
+        }
+
+        function startListeningData() {
+            db.ref('responses').on('value', (snapshot) => {
+                globalResponses = snapshot.val() || {};
+                document.getElementById("counter").innerText = `📊 收集人數：${Object.keys(globalResponses).length} 人`;
+                db.ref('show_results').once('value', snap => { if(snap.val() === true) updateVisuals(); });
+            });
+
+            db.ref('show_results').on('value', snap => {
+                const showResults = snap.val() || false;
+                const placeholder = document.getElementById('blind-placeholder');
+                const mainZone = document.getElementById('chart-main-zone');
+                const legend = document.getElementById('chart-legend');
+
+                if (showResults) {
+                    placeholder.style.display = "none"; mainZone.style.display = "block";
+                    legend.style.display = (currentTask && currentTask.type === "text") ? "none" : "flex";
+                    updateVisuals();
+                } else {
+                    placeholder.style.display = "block"; mainZone.style.display = "none"; legend.style.display = "none";
+                }
+            });
+
+            // 🚀 數據對比監聽器
+            db.ref('show_comparison').on('value', snap => {
+                const showCompare = snap.val() || false;
+                if (currentTask && currentTask.type === "text") return;
+
+                const legendT = document.getElementById('legend-t');
+                if(legendT) legendT.style.display = showCompare ? "flex" : "none";
+
+                if (currentTask.type === "single") {
+                    // 單選題對比邏輯：動態秀出文字右側的歷年數據
+                    currentOptions.forEach(opt => {
+                        const tTag = document.getElementById(`pie-count-t-${opt}`);
+                        if(tTag) tTag.style.display = showCompare ? "inline" : "none";
+                    });
+                } else {
+                    // 多選題對比邏輯：展開右側長條圖
+                    const tSide = document.getElementById('teacher-side');
+                    if(tSide) tSide.style.display = showCompare ? "flex" : "none";
+                    currentOptions.forEach(opt => {
+                        const tBar = document.getElementById(`bar-t-${opt}`);
+                        if(tBar) { tBar.style.width = showCompare ? (teacherData[opt] || 0) + "%" : "0%"; }
+                    });
+                }
+            });
+        }
+
+        function updateVisuals() {
+            if (!currentTask) return;
+            
+            // 運算基礎數據
+            const totalStudents = Object.keys(globalResponses).length;
+            const tallies = {};
+            currentOptions.forEach(opt => tallies[opt] = 0);
+
+            for (let student in globalResponses) {
+                const choices = globalResponses[student];
+                if (Array.isArray(choices)) { choices.forEach(opt => { if (tallies[opt] !== undefined) tallies[opt]++; }); }
+            }
+
+            if(currentTask.type === "text") {
+                // 1. 問答題詞雲更新邏輯
+                const cloudBox = document.getElementById("cloud-box"); if(!cloudBox) return;
+                const textTallies = {};
+                for (let s in globalResponses) { 
+                    const arr = globalResponses[s]; 
+                    if (Array.isArray(arr) && arr[0]) { const w = arr[0].trim(); if(w) textTallies[w] = (textTallies[w] || 0) + 1; }
+                }
+                const words = Object.keys(textTallies);
+                if(words.length === 0) { cloudBox.innerHTML = "<p style='color:#a5d8ff; font-size:28px; font-weight:bold;'>💬 期待傾聽你的心聲...</p>"; return; }
+                let maxVotes = 1; words.forEach(w => { if(textTallies[w] > maxVotes) maxVotes = textTallies[w]; });
+                cloudBox.innerHTML = "";
+                const colors = ['#00f2fe', '#4facfe', '#37b24d', '#51cf66', '#ff922b', '#ffcc00', '#f783ac', '#b197fc', '#748ffc'];
+                words.forEach(word => {
+                    const v = textTallies[word]; const fSize = 28 + Math.round((v / maxVotes) * 44); const randColor = colors[Math.floor(Math.random() * colors.length)];
+                    const span = document.createElement("span"); span.className = "cloud-word"; span.style.fontSize = fSize + "px"; span.style.color = randColor; span.style.textShadow = `0 0 15px ${randColor}44`; span.innerText = word;
+                    cloudBox.appendChild(span);
+                });
+            } 
+            else if(currentTask.type === "single") {
+                // 2. 🚀 全新單選題圓餅圖即時數據渲染
+                const pieCircle = document.getElementById("pie-circle");
+                const pieEmptyMsg = document.getElementById("pie-empty-msg");
+
+                if (totalStudents === 0) {
+                    if(pieCircle) pieCircle.style.display = "none";
+                    if(pieEmptyMsg) pieEmptyMsg.style.display = "block";
+                    return;
+                } else {
+                    if(pieCircle) pieCircle.style.display = "block";
+                    if(pieEmptyMsg) pieEmptyMsg.style.display = "none";
+                }
+
+                let gradientSegments = [];
+                let accumulatedAngle = 0;
+
+                currentOptions.forEach((opt, idx) => {
+                    const votes = tallies[opt];
+                    const pct = totalStudents > 0 ? (votes / totalStudents) * 100 : 0;
+                    const displayPct = Math.round(pct);
+                    
+                    // 更新右側 28 號大字文字與百分比
+                    const liveCountTag = document.getElementById(`pie-count-live-${opt}`);
+                    if(liveCountTag) liveCountTag.innerText = `${votes} 票 (${displayPct}%)`;
+
+                    // 計算圓餅圖切片角度
+                    if (pct > 0) {
+                        const nextAngle = accumulatedAngle + pct;
+                        const color = pieColors[idx % pieColors.length];
+                        gradientSegments.push(`${color} ${accumulatedAngle}% ${nextAngle}%`);
+                        accumulatedAngle = nextAngle;
+                    }
+                });
+
+                // 注入 CSS 錐形漸層完成圓餅圖繪製
+                if (gradientSegments.length > 0 && pieCircle) {
+                    pieCircle.style.background = `conic-gradient(${gradientSegments.join(', ')})`;
+                }
+            } 
+            else {
+                // 3. 多選題長條圖即時數據更新
+                currentOptions.forEach(opt => {
+                    const votes = tallies[opt];
+                    const pct = totalStudents > 0 ? Math.round((votes / totalStudents) * 100) : 0;
+                    const liveBar = document.getElementById(`bar-live-${opt}`);
+                    if (liveBar) {
+                        liveBar.style.width = pct + "%";
+                        document.getElementById(`count-live-${opt}`).innerText = `${votes} 票 (${pct}%)`;
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
